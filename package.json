@@ -1,0 +1,19 @@
+{
+  "name": "tacuerdas",
+  "version": "1.0.0",
+  "description": "A Twitter bot",
+  "main": "server.js",
+  "scripts": {
+    "test": "test"
+  },
+  "keywords": [
+    "bot",
+    "twitter",
+    "blog"
+  ],
+  "author": "Eva Millan",
+  "license": "ISC",
+  "dependencies": {
+    "puppeteer": "^1.6.2"
+  }
+}
