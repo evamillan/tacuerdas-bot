@@ -18,14 +18,25 @@ const getRandomBlogList = () => {
   let randomDirectory = directories[Math.floor(Math.random() * directories.length)];
 
   return 'https://web.archive.org/web/' + randomDate + '/http://bitacoras.net:80/dir/' + randomDirectory;
-}
+};
+
+const screenshotOptions = {
+  clip: {
+    x: 0,
+    y: 0,
+    width: 600,
+    height: 800
+  },
+  encoding: 'base64'
+};
+
 
 async function scrape() {
   const browser = await puppeteer.launch({headless: false});
   const page = await browser.newPage();
 
   var randomListing = getRandomBlogList();
-  await page.goto(randomListing);
+  await page.goto(randomListing).catch(error => scrape());
 
   const getBlogsUrls = await page.evaluate(() => {
     let urls = [];
@@ -36,9 +47,13 @@ async function scrape() {
 
       urls.push(url);
     }
-    console.log(urls);
-  });
+  return urls;
+})
+
   await page.waitFor(1000);
+  await page.goto(getBlogsUrls[Math.floor(Math.random() * getBlogsUrls.length)]).catch(error => scrape());
+  await page.waitFor(15000);
+  page.screenshot(screenshotOptions).then(response => console.log(response))
 }
 
 scrape()
