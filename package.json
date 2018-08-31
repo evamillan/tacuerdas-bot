@@ -4,7 +4,7 @@
   "description": "A Twitter bot",
   "main": "server.js",
   "scripts": {
-    "test": "test"
+    "start": "node server.js"
   },
   "keywords": [
     "bot",
@@ -14,6 +14,8 @@
   "author": "Eva Millan",
   "license": "ISC",
   "dependencies": {
-    "puppeteer": "^1.6.2"
+    "puppeteer": "^1.6.2",
+    "twit": "^2.2.11",
+    "express": "^4.14.0"
   }
 }

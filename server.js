@@ -1,59 +1,111 @@
+const path = require('path');
+const express = require('express');
 const puppeteer = require('puppeteer');
+const twitter = require(__dirname + '/twitter.js');
 
-const getRandomBlogList = () => {
-  const dates = [
-    '20021011093336',
-    '20030401081030',
-    '20030604143324',
-  ];
+const app = express();
 
-  const directories = [
-    'Arte_y_Cultura',
-    'Internet_y_Tecnologia',
-    'Personales',
-    'Temáticos'
-  ];
+const dates = [
+  '20021011093336',
+  '20030202181344',
+  '20030401081030',
+  '20030604143324',
+];
 
-  let randomDate = dates[Math.floor(Math.random() * dates.length)];
-  let randomDirectory = directories[Math.floor(Math.random() * directories.length)];
-
-  return 'https://web.archive.org/web/' + randomDate + '/http://bitacoras.net:80/dir/' + randomDirectory;
-};
+const directories = [
+  'Arte_y_Cultura',
+  'Arte_y_Cultura/Ficcion',
+  'Personales',
+  'Personales/Diarios',
+  'Personales/Opinion',
+  'Internet_y_Tecnologia',
+  'Internet_y_Tecnologia/Enlaces',
+  'Internet_y_Tecnologia/Opinion',
+  'Internet_y_Tecnologia/Usabilidad',
+  'Temáticos',
+  'Tematicos/Grupales',
+  'Tematicos/Periodismo'
+];
 
 const screenshotOptions = {
   clip: {
     x: 0,
     y: 0,
-    width: 600,
+    width: 800,
     height: 800
   },
   encoding: 'base64'
 };
 
+const getRandomBlogList = () => {
+  let randomDate = dates[Math.floor(Math.random() * dates.length)];
+  let randomDirectory = directories[Math.floor(Math.random() * directories.length)];
+  return 'https://web.archive.org/web/' + randomDate + '/http://bitacoras.net:80/dir/' + randomDirectory;
+};
 
-async function scrape() {
-  const browser = await puppeteer.launch({headless: false});
-  const page = await browser.newPage();
+app.all("/" + process.env.BOT_ENDPOINT, (req, res) => {
+  async function scrape() {
+    const browser = await puppeteer.launch({
+      args: ['--no-sandbox'],
+      headless: true,
+      defaultViewport: {
+        width: 800,
+        height: 800
+      }
+    });
 
-  var randomListing = getRandomBlogList();
-  await page.goto(randomListing).catch(error => scrape());
+    const page = await browser.newPage();
 
-  const getBlogsUrls = await page.evaluate(() => {
-    let urls = [];
-    let elements = document.querySelectorAll('table:nth-child(10) > tbody > tr > td:nth-child(1) > p > span > a:nth-child(1)');
+    var randomListing = getRandomBlogList();
+    await page.goto(randomListing).catch(error => scrape());
 
-    for (let i = 0; i < elements.length; i++) {
-      let url = elements[i].getAttribute("href");
+    const getBlogsUrls = await page.evaluate(() => {
+      let urls = [];
+      let elements = document.querySelectorAll('table:nth-child(10) > tbody > tr > td:nth-child(1) > p > span > a:nth-child(1)');
 
-      urls.push(url);
-    }
-  return urls;
-})
+      for (let i = 0; i < elements.length; i++) {
+        let url = elements[i].getAttribute("href");
 
-  await page.waitFor(1000);
-  await page.goto(getBlogsUrls[Math.floor(Math.random() * getBlogsUrls.length)]).catch(error => scrape());
-  await page.waitFor(15000);
-  page.screenshot(screenshotOptions).then(response => console.log(response))
-}
+        urls.push(url);
+      }
+      return urls;
+    })
 
-scrape()
+    await page.waitFor(1000);
+    await page.goto(getBlogsUrls[Math.floor(Math.random() * getBlogsUrls.length)]).catch(error => {
+      browser.disconnect();
+      scrape();
+    });
+
+    await page.waitFor(30000);
+
+    const url = await page.evaluate(() => {
+      const waybackHeader = document.querySelector('#wm-ipp');
+      const url = document.querySelector('#wmtbURL').value;
+      const trimmedUrl = url.slice(0, url.length - 4)
+      waybackHeader.style.display = 'none';
+      return url;
+    }).catch(error => {
+      browser.disconnect();
+      scrape();
+    });
+
+    await page.screenshot(screenshotOptions).then(response => {
+      twitter.post_image(url, response, function(err, data) {
+        if (err) {
+          console.log(err);
+        } else {
+          browser.disconnect();
+          browser.close();
+          return;
+        }
+      });
+    });
+  }
+
+  scrape();
+});
+
+var listener = app.listen(process.env.PORT, function() {
+  console.log('Bot running on port ' + listener.address().port);
+});
