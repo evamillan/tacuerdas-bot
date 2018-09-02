@@ -57,7 +57,11 @@ app.all("/" + process.env.BOT_ENDPOINT, (req, res) => {
     const page = await browser.newPage();
 
     var randomListing = getRandomBlogList();
-    await page.goto(randomListing).catch(error => scrape());
+    await page.goto(randomListing).catch(error => {
+      console.log(error);
+      browser.close();
+      scrape();
+    });
 
     const getBlogsUrls = await page.evaluate(() => {
       let urls = [];
@@ -73,6 +77,7 @@ app.all("/" + process.env.BOT_ENDPOINT, (req, res) => {
 
     await page.waitFor(1000);
     await page.goto(getBlogsUrls[Math.floor(Math.random() * getBlogsUrls.length)]).catch(error => {
+      console.log(error);
       browser.disconnect();
       scrape();
     });
@@ -86,6 +91,7 @@ app.all("/" + process.env.BOT_ENDPOINT, (req, res) => {
       waybackHeader.style.display = 'none';
       return url;
     }).catch(error => {
+      console.log(error);
       browser.disconnect();
       scrape();
     });
@@ -101,6 +107,8 @@ app.all("/" + process.env.BOT_ENDPOINT, (req, res) => {
         }
       });
     });
+   res.send({'url': url});
+   browser.close();
   }
 
   scrape();
