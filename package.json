@@ -14,7 +14,7 @@
   "author": "Eva Millan",
   "license": "ISC",
   "dependencies": {
-    "puppeteer": "^1.6.2",
+    "puppeteer": "^1.13.0",
     "twit": "^2.2.11"
   },
   "devDependencies": {
